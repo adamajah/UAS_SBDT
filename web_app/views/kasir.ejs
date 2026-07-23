@@ -1,0 +1,210 @@
+<%- include('partials/header') %>
+
+<div class="layout-grid">
+    <!-- Kolom Kiri: Katalog Produk (Target Replikasi) & Transaksi -->
+    <div class="layout-main-content">
+        <!-- Katalog Produk -->
+        <div class="section-card">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">Katalog Produk Cabang</h2>
+                    <p class="section-subtitle">Sinkronisasi otomatis (Logical Replication) dari Database Pusat</p>
+                </div>
+            </div>
+            
+            <% if (!products || products.length === 0) { %>
+                <div class="empty-state">
+                    <span class="empty-icon">📭</span>
+                    <p>Katalog produk kosong di cabang ini.</p>
+                    <p class="empty-hint">Silakan tambahkan produk di Dashboard Pusat (HQ) terlebih dahulu untuk memicu replikasi.</p>
+                </div>
+            <% } else { %>
+                <div class="product-grid">
+                    <% products.forEach(p => { %>
+                    <div class="product-card" data-id="<%= p.id %>" data-name="<%= p.nama %>" data-price="<%= p.harga %>" data-stock="<%= p.stok %>">
+                        <div class="product-info">
+                            <h3 class="product-name"><%= p.nama %></h3>
+                            <span class="product-price">Rp<%= parseFloat(p.harga).toLocaleString('id-ID') %></span>
+                        </div>
+                        <div class="product-meta">
+                            <span class="product-id">ID: <%= p.id %></span>
+                            <span class="product-stock" id="stock-val-<%= p.id %>">Stok: <%= p.stok %></span>
+                        </div>
+                    </div>
+                    <% }) %>
+                </div>
+            <% } %>
+        </div>
+
+        <!-- Riwayat Transaksi Cabang -->
+        <div class="section-card">
+            <div class="section-header">
+                <h2 class="section-title">Nota Penjualan Cabang (Fragmentasi Horizontal)</h2>
+            </div>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Waktu Transaksi</th>
+                            <th>ID Transaksi</th>
+                            <th>Total Pembayaran</th>
+                            <th>Status Sinkronisasi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (!transactions || transactions.length === 0) { %>
+                            <tr>
+                                <td colspan="4" class="table-empty">Belum ada transaksi lokal di cabang ini.</td>
+                            </tr>
+                        <% } else { %>
+                            <% transactions.forEach(tx => { %>
+                            <tr>
+                                <td class="tx-time"><%= new Date(tx.waktu).toLocaleString('id-ID') %></td>
+                                <td class="tx-id"><code><%= tx.id %></code></td>
+                                <td class="tx-total">Rp<%= parseFloat(tx.total_harga).toLocaleString('id-ID') %></td>
+                                <td>
+                                    <% if (tx.is_synced) { %>
+                                        <span class="status-badge status-badge-success">✓ Synced</span>
+                                    <% } else { %>
+                                        <span class="status-badge status-badge-pending">⏳ Unsynced (Buffered)</span>
+                                    <% } %>
+                                </td>
+                            </tr>
+                            <% }) %>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kolom Kanan: Keranjang Belanja -->
+    <div class="layout-sidebar">
+        <div class="sidebar-card">
+            <h2 class="sidebar-title">Transaksi Kasir</h2>
+            
+            <form action="/checkout" method="POST" id="checkout-form">
+                <div id="cart-empty" class="cart-empty-state">
+                    <span class="cart-empty-icon">🛒</span>
+                    <p>Keranjang masih kosong</p>
+                    <p class="cart-empty-hint">Pilih item produk di sebelah kiri untuk berbelanja</p>
+                </div>
+                
+                <!-- Container untuk Item Keranjang -->
+                <div class="cart-items-container" id="cart-items-list"></div>
+
+                <!-- Summary Total -->
+                <div class="cart-summary">
+                    <span class="summary-label">Total Pembayaran</span>
+                    <span class="summary-value" id="cart-total-price">Rp0</span>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block" id="checkout-btn" disabled>
+                    Simpan Transaksi (Checkout)
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    let cart = {};
+
+    // Menghubungkan klik pada kartu produk dengan keranjang kasir
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.product-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const id = parseInt(card.getAttribute('data-id'));
+                const name = card.getAttribute('data-name');
+                const price = parseFloat(card.getAttribute('data-price'));
+                const stock = parseInt(card.getAttribute('data-stock'));
+                addToCart(id, name, price, stock);
+            });
+        });
+    });
+
+    function addToCart(id, name, price, stock) {
+        if (stock <= 0) {
+            alert("Maaf, stok produk tidak mencukupi!");
+            return;
+        }
+
+        if (cart[id]) {
+            if (cart[id].qty >= stock) {
+                alert(`Maaf, stok lokal tidak mencukupi! Batas stok saat ini: ${stock}`);
+                return;
+            }
+            cart[id].qty += 1;
+        } else {
+            cart[id] = { id: id, name: name, price: price, qty: 1, maxStock: stock };
+        }
+        renderCart();
+    }
+
+    function changeQty(id, delta) {
+        if (!cart[id]) return;
+        
+        cart[id].qty += delta;
+        if (cart[id].qty > cart[id].maxStock) {
+            alert(`Jumlah melebihi stok! Maksimal: ${cart[id].maxStock}`);
+            cart[id].qty = cart[id].maxStock;
+        }
+
+        if (cart[id].qty <= 0) {
+            delete cart[id];
+        }
+        renderCart();
+    }
+
+    function renderCart() {
+        const listDiv = document.getElementById('cart-items-list');
+        const emptyMsg = document.getElementById('cart-empty');
+        const totalSpan = document.getElementById('cart-total-price');
+        const checkoutBtn = document.getElementById('checkout-btn');
+
+        if (!listDiv || !emptyMsg || !totalSpan || !checkoutBtn) return;
+
+        listDiv.innerHTML = '';
+        let total = 0;
+        let itemsCount = 0;
+
+        for (let key in cart) {
+            const item = cart[key];
+            const itemSubtotal = item.price * item.qty;
+            total += itemSubtotal;
+            itemsCount++;
+
+            listDiv.innerHTML += `
+                <div class="cart-item">
+                    <div class="cart-item-details">
+                        <div class="cart-item-name">${item.name}</div>
+                        <div class="cart-item-pricing">
+                            Rp${item.price.toLocaleString('id-ID')} x ${item.qty}
+                        </div>
+                    </div>
+                    <div class="cart-item-actions">
+                        <button type="button" class="qty-btn" onclick="changeQty(${item.id}, -1)">-</button>
+                        <span class="qty-display">${item.qty}</span>
+                        <button type="button" class="qty-btn" onclick="changeQty(${item.id}, 1)">+</button>
+                        
+                        <!-- Form Inputs -->
+                        <input type="hidden" name="product_ids[]" value="${item.id}">
+                        <input type="hidden" name="quantities[]" value="${item.qty}">
+                    </div>
+                </div>
+            `;
+        }
+
+        if (itemsCount > 0) {
+            emptyMsg.style.display = 'none';
+            checkoutBtn.disabled = false;
+        } else {
+            emptyMsg.style.display = 'block';
+            checkoutBtn.disabled = true;
+        }
+
+        totalSpan.innerText = 'Rp' + total.toLocaleString('id-ID');
+    }
+</script>
+
+<%- include('partials/footer') %>

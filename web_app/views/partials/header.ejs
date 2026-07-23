@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SBDT POS - <%= app_type === 'pusat' ? 'HQ Dashboard' : 'Kasir ' + branch_name %></title>
+    <!-- Google Font: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Premium SaaS Style -->
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-container">
+            <div class="brand">
+                <span class="brand-icon">🏪</span>
+                <span class="brand-name">RetailPOS </span>
+                <% if (app_type === 'pusat') { %>
+                    <span class="badge badge-hq">Pusat HQ</span>
+                <% } else { %>
+                    <span class="badge badge-branch">Cabang <%= branch_name %></span>
+                <% } %>
+            </div>
+            
+            <div class="header-meta">
+                <!-- Database Info -->
+                <div class="db-meta">
+                    <span class="meta-item">Database: <code><%= db_name %></code></span>
+                    <span class="meta-item">Node: <code><%= db_host %>:<%= db_port %></code></span>
+                </div>
+
+                <!-- Connection Indicator (Only for Cabang) -->
+                <% if (app_type === 'cabang') { %>
+                <div class="status-indicator">
+                    <span class="status-label">HQ Sync:</span>
+                    <span id="hq-status-dot" class="status-dot <%= hq_online ? 'online' : 'offline' %>"></span>
+                    <span id="hq-status-text" class="status-text"><%= hq_online ? 'CONNECTED' : 'DISCONNECTED' %></span>
+                </div>
+                <% } %>
+            </div>
+        </div>
+    </header>
+
+    <main class="app-main">
+        <!-- Flash Messages (via Query String) -->
+        <% if (success_msg) { %>
+            <div class="alert alert-success">
+                <span class="alert-icon">✓</span>
+                <span class="alert-text"><%= success_msg %></span>
+            </div>
+        <% } %>
+        <% if (error_msg) { %>
+            <div class="alert alert-danger">
+                <span class="alert-icon">⚠️</span>
+                <span class="alert-text"><%= error_msg %></span>
+            </div>
+        <% } %>

@@ -1,0 +1,167 @@
+<%- include('partials/header') %>
+
+<!-- Statistik Ringkasan HQ -->
+<div class="stats-grid">
+    <div class="stat-card" style="border-top: 4px solid var(--accent);">
+        <span class="stat-label">Total Omzet Global (HQ)</span>
+        <span class="stat-val">Rp<%= parseFloat(summary.total).toLocaleString('id-ID') %></span>
+        <p class="stat-hint">Konsolidasi terpadu dari seluruh cabang franchise</p>
+    </div>
+    
+    <div class="stat-card" style="border-top: 4px solid var(--warning);">
+        <span class="stat-label">Volume Transaksi Global</span>
+        <span class="stat-val"><%= summary.count %> Nota Masuk</span>
+        <p class="stat-hint">Total transaksi terproses di semua kasir</p>
+    </div>
+
+    <div class="stat-card" style="border-top: 4px solid var(--success);">
+        <span class="stat-label">Breakdown Pendapatan Cabang</span>
+        <div class="breakdown-list">
+            <div class="breakdown-item">
+                <span>Jakarta (JKT):</span>
+                <span class="breakdown-val text-blue">Rp<%= total_jkt.toLocaleString('id-ID') %></span>
+            </div>
+            <div class="breakdown-item">
+                <span>Bandung (BDG):</span>
+                <span class="breakdown-val text-cyan">Rp<%= total_bdg.toLocaleString('id-ID') %></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="layout-grid">
+    <!-- Kolom Kiri: Manajemen Katalog Produk Pusat -->
+    <div class="layout-main-content">
+        <!-- Form Tambah Produk -->
+        <div class="section-card">
+            <div class="section-header">
+                <h2 class="section-title">Tambah Produk Baru di Pusat</h2>
+                <p class="section-subtitle">Data katalog produk akan otomatis ter-replikasi ke seluruh database cabang</p>
+            </div>
+            
+            <form action="/hq/product/add" method="POST" class="horizontal-form">
+                <div class="form-row">
+                    <div class="form-group flex-2">
+                        <label for="nama">Nama Produk</label>
+                        <input type="text" name="nama" id="nama" class="form-control" placeholder="Contoh: Es Matcha Latte" required>
+                    </div>
+                    <div class="form-group flex-1">
+                        <label for="harga">Harga Jual (Rp)</label>
+                        <input type="number" name="harga" id="harga" class="form-control" placeholder="22000" min="0" required>
+                    </div>
+                    <div class="form-group flex-1">
+                        <label for="stok">Stok Pusat</label>
+                        <input type="number" name="stok" id="stok" class="form-control" placeholder="100" min="0" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="margin-top: 1rem; width: auto; align-self: flex-end;">
+                    Tambah & Replikasikan Produk
+                </button>
+            </form>
+        </div>
+
+        <!-- Daftar Katalog & Edit Produk -->
+        <div class="section-card">
+            <div class="section-header">
+                <h2 class="section-title">Master Data Katalog Produk (Pusat)</h2>
+            </div>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">ID</th>
+                            <th>Nama Item</th>
+                            <th style="width: 320px;">Koreksi Harga & Stok Pusat</th>
+                            <th style="width: 180px; text-align: center;">Tindakan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (!products || products.length === 0) { %>
+                            <tr>
+                                <td colspan="4" class="table-empty">Belum ada produk terdaftar di Pusat.</td>
+                            </tr>
+                        <% } else { %>
+                            <% products.forEach(p => { %>
+                            <tr>
+                                <td><%= p.id %></td>
+                                <td class="product-name-td"><%= p.nama %></td>
+                                <td>
+                                    <!-- Form Edit Produk Cepat -->
+                                    <form action="/hq/product/update" method="POST" id="update-form-<%= p.id %>" class="quick-edit-form">
+                                        <input type="hidden" name="id" value="<%= p.id %>">
+                                        <div class="edit-field">
+                                            <span class="field-label">Harga (Rp):</span>
+                                            <input type="number" name="harga" value="<%= parseInt(p.harga) %>" class="form-control form-control-sm" required>
+                                        </div>
+                                        <div class="edit-field">
+                                            <span class="field-label">Stok:</span>
+                                            <input type="number" name="stok" value="<%= p.stok %>" class="form-control form-control-sm" required>
+                                        </div>
+                                    </form>
+                                </td>
+                                <td>
+                                    <div class="action-buttons-group">
+                                        <button type="submit" form="update-form-<%= p.id %>" class="btn btn-sm btn-success">
+                                            Simpan
+                                        </button>
+                                        <form action="/hq/product/delete/<%= p.id %>" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus produk ini dari database Pusat? Seluruh cabang akan kehilangan item ini secara otomatis.')" style="display: inline;">
+                                            <button type="submit" class="btn btn-sm btn-danger">
+                                                Hapus
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            <% }) %>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kolom Kanan: Umpan Transaksi Konsolidasi Real-time -->
+    <div class="layout-sidebar">
+        <div class="sidebar-card">
+            <div class="sidebar-header-flex">
+                <h2 class="sidebar-title">Umpan Transaksi Global</h2>
+                <span class="live-dot-indicator"><span class="dot-ping"></span>Live</span>
+            </div>
+            
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Cabang</th>
+                            <th>Waktu</th>
+                            <th style="text-align: right;">Total Nota</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (!transactions || transactions.length === 0) { %>
+                            <tr>
+                                <td colspan="3" class="table-empty">Belum ada transaksi tersinkronisasi.</td>
+                            </tr>
+                        <% } else { %>
+                            <% transactions.forEach(tx => { %>
+                            <tr>
+                                <td>
+                                    <% if (tx.id_cabang === 'JKT') { %>
+                                        <span class="branch-label label-jkt">JKT</span>
+                                    <% } else { %>
+                                        <span class="branch-label label-bdg">BDG</span>
+                                    <% } %>
+                                </td>
+                                <td class="tx-time-sm"><%= new Date(tx.waktu).toLocaleTimeString('id-ID') %></td>
+                                <td class="tx-total" style="text-align: right;">Rp<%= parseFloat(tx.total_harga).toLocaleString('id-ID') %></td>
+                            </tr>
+                            <% }) %>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('partials/footer') %>

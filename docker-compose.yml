@@ -1,0 +1,152 @@
+version: '3.8'
+
+services:
+  db_pusat:
+    image: postgres:15-alpine
+    container_name: db_pusat
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: supersecretpassword
+      POSTGRES_DB: pos_pusat
+    ports:
+      - "5431:5432"
+    volumes:
+      - pgdata_pusat:/var/lib/postgresql/data
+    command: postgres -c wal_level=logical -c max_replication_slots=10 -c max_wal_senders=10
+    networks:
+      - sbdt_network
+
+  db_cabang_jkt:
+    image: postgres:15-alpine
+    container_name: db_cabang_jkt
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: supersecretpassword
+      POSTGRES_DB: pos_jkt
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata_jkt:/var/lib/postgresql/data
+    command: postgres -c wal_level=logical -c max_replication_slots=10 -c max_wal_senders=10
+    networks:
+      - sbdt_network
+
+  db_cabang_bdg:
+    image: postgres:15-alpine
+    container_name: db_cabang_bdg
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: supersecretpassword
+      POSTGRES_DB: pos_bdg
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata_bdg:/var/lib/postgresql/data
+    command: postgres -c wal_level=logical -c max_replication_slots=10 -c max_wal_senders=10
+    networks:
+      - sbdt_network
+
+  app_pusat:
+    build: .
+    container_name: app_pusat
+    environment:
+      APP_TYPE: pusat
+      BRANCH_NAME: PUSAT
+      DB_NAME: pos_pusat
+      DB_USER: postgres
+      DB_PASS: supersecretpassword
+      DB_HOST: db_pusat
+      DB_PORT: 5432
+      PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db_pusat
+    networks:
+      - sbdt_network
+
+  app_kasir_jkt:
+    build: .
+    container_name: app_kasir_jkt
+    environment:
+      APP_TYPE: cabang
+      BRANCH_NAME: JKT
+      DB_NAME: pos_jkt
+      DB_USER: postgres
+      DB_PASS: supersecretpassword
+      DB_HOST: db_cabang_jkt
+      DB_PORT: 5432
+      HQ_DB_HOST: db_pusat
+      HQ_DB_PORT: 5432
+      HQ_DB_NAME: pos_pusat
+      PORT: 8081
+    ports:
+      - "8081:8081"
+    depends_on:
+      - db_cabang_jkt
+    networks:
+      - sbdt_network
+
+  app_kasir_bdg:
+    build: .
+    container_name: app_kasir_bdg
+    environment:
+      APP_TYPE: cabang
+      BRANCH_NAME: BDG
+      DB_NAME: pos_bdg
+      DB_USER: postgres
+      DB_PASS: supersecretpassword
+      DB_HOST: db_cabang_bdg
+      DB_PORT: 5432
+      HQ_DB_HOST: db_pusat
+      HQ_DB_PORT: 5432
+      HQ_DB_NAME: pos_pusat
+      PORT: 8082
+    ports:
+      - "8082:8082"
+    depends_on:
+      - db_cabang_bdg
+    networks:
+      - sbdt_network
+
+  sync_agent:
+    build: .
+    container_name: sync_agent
+    command: node sync_agent.js
+    environment:
+      DB_HOST_PUSAT: db_pusat
+      DB_PORT_PUSAT: 5432
+      DB_HOST_JKT: db_cabang_jkt
+      DB_PORT_JKT: 5432
+      DB_HOST_BDG: db_cabang_bdg
+      DB_PORT_BDG: 5432
+    depends_on:
+      - db_pusat
+      - db_cabang_jkt
+      - db_cabang_bdg
+    networks:
+      - sbdt_network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin_web
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@sbdtpos.com
+      PGADMIN_DEFAULT_PASSWORD: adminpassword
+    ports:
+      - "5050:80"
+    depends_on:
+      - db_pusat
+      - db_cabang_jkt
+      - db_cabang_bdg
+    networks:
+      - sbdt_network
+
+networks:
+  sbdt_network:
+    driver: bridge
+
+volumes:
+  pgdata_pusat:
+  pgdata_jkt:
+  pgdata_bdg:

@@ -1,0 +1,30 @@
+    </main>
+
+    <% if (app_type === 'cabang') { %>
+    <script>
+        // Script untuk mengecek status HQ secara live setiap 3 detik
+        async function updateHqStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                const dot = document.getElementById('hq-status-dot');
+                const text = document.getElementById('hq-status-text');
+                
+                if (!dot || !text) return;
+
+                if (data.hq_online) {
+                    dot.className = 'status-dot online';
+                    text.innerText = 'CONNECTED';
+                } else {
+                    dot.className = 'status-dot offline';
+                    text.innerText = 'DISCONNECTED';
+                }
+            } catch (err) {
+                console.error("Gagal melakukan fetch status HQ:", err);
+            }
+        }
+        setInterval(updateHqStatus, 3000);
+    </script>
+    <% } %>
+</body>
+</html>

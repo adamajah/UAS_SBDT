@@ -1,0 +1,16 @@
+{
+  "name": "sbdt-pos-terdistribusi-nodejs",
+  "version": "1.0.0",
+  "description": "Sistem Kasir POS Terdistribusi Node.js",
+  "main": "web_app/app.js",
+  "scripts": {
+    "start": "node web_app/app.js",
+    "sync": "node sync_agent.js"
+  },
+  "dependencies": {
+    "ejs": "^3.1.9",
+    "express": "^4.19.2",
+    "pg": "^8.11.5",
+    "uuid": "^9.0.1"
+  }
+}
