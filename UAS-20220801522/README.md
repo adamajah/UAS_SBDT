@@ -59,6 +59,7 @@ Sistem basis data terdistribusi untuk jaringan Point of Sale (POS) franchise kas
 UAS-20220801522/
 ├── README.md                           # Dokumentasi utama proyek
 ├── Laporan_SBDT.pdf                    # Laporan lengkap Tugas Akhir / Jurnal (PDF)
+├── Laporan_SBDT.docx                   # Laporan lengkap Tugas Akhir / Jurnal (Word .docx)
 ├── presentasi_SBDT.pptx                # File Presentasi PowerPoint (.pptx)
 ├── presentasi_SBDT (1).pdf             # File Presentasi dalam format PDF
 ├── img/                                # Tangkapan layar dan diagram pengujian

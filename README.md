@@ -16,6 +16,6 @@ Seluruh materi tugas akhir, dokumen laporan, slide presentasi, dan source code p
 
 ### 📂 Ringkasan Isu Proyek & Struktur
 * **[Dokumentasi & Setup Proyek](./UAS-20220801522/README.md)**
-* **[Laporan Tugas Akhir / Jurnal (PDF)](./UAS-20220801522/Laporan_SBDT.pdf)**
+* **[Laporan Tugas Akhir / Jurnal (PDF)](./UAS-20220801522/Laporan_SBDT.pdf)** | **[(DOCX)](./UAS-20220801522/Laporan_SBDT.docx)**
 * **[Slide Presentasi (PPTX)](./UAS-20220801522/presentasi_SBDT.pptx)**
 * **[Source Code System](./UAS-20220801522/src/)**
